@@ -332,12 +332,12 @@ export default function AchieveTracker() {
       localStorage.setItem('achieve_username', name);
     } catch (error) {
       console.error(error);
-      alert(t('firebase_error') + " " + error.message);
+      window.alert(t('firebase_error') + " " + error.message);
     }
   };
 
   const handleLogout = async () => {
-    if(confirm(t('confirm_logout'))) {
+    if(window.confirm(t('confirm_logout'))) {
       await signOut(auth);
       localStorage.removeItem('achieve_username');
       setUserName('');
@@ -364,7 +364,7 @@ export default function AchieveTracker() {
 
   const deleteGoal = async (id) => {
     if (!user) return;
-    if (confirm(t('confirm_delete'))) {
+    if (window.confirm(t('confirm_delete'))) {
       try {
         await deleteDoc(doc(db, "goals", id));
         setView('dashboard');
@@ -605,7 +605,7 @@ const CreateGoalScreen = ({ onSave, onCancel, t }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const valid = tasks.filter(t => t.title.trim());
-    if (!title.trim() || valid.length === 0) return alert(t('alert_fill'));
+    if (!title.trim() || valid.length === 0) return window.alert(t('alert_fill'));
     onSave({ title, deadlineType: 'month', tasks: valid });
   };
   return (
