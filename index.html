@@ -1,35 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Check, Plus, User, Trophy, Calendar, ChevronLeft, ChevronRight, 
-  Target, Trash2, LogOut, Activity, Flame, Globe, Settings, Download, Smartphone, Loader2
+  Target, Trash2, LogOut, Activity, Flame, Globe, Settings, Download, Upload, Smartphone, X 
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
-// Не забудьте установить: npm install firebase
-import { initializeApp } from "firebase/app";
-import { 
-  getFirestore, collection, addDoc, query, where, onSnapshot, 
-  deleteDoc, doc, updateDoc, orderBy, serverTimestamp 
-} from "firebase/firestore";
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
-
-// --- ВАШИ КЛЮЧИ КОНФИГУРАЦИИ ---
-const firebaseConfig = {
-  apiKey: "AIzaSyD9s2O9kV_6tAlOybamYQh8sU2zdtkku3c",
-  authDomain: "achievetracker.firebaseapp.com",
-  projectId: "achievetracker",
-  storageBucket: "achievetracker.firebasestorage.app",
-  messagingSenderId: "617572654464",
-  appId: "1:617572654464:web:ab7b17b08b6f23717f3565",
-  measurementId: "G-QLJ89YJD6P"
-};
-
-// Инициализация Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
 // --- Словари переводов ---
+
 const TRANSLATIONS = {
   ru: {
     login_title: "AchieveTracker",
@@ -70,100 +46,110 @@ const TRANSLATIONS = {
     cancel: "Отмена",
     days_short: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
     settings_title: "Настройки",
-    backup_title: "Синхронизация",
-    backup_desc: "Ваши данные синхронизируются с облаком и доступны на всех ваших устройствах.",
-    install_title: "Установка",
-    install_desc: "Версия для Android APK.",
+    backup_title: "Резервное копирование",
+    backup_desc: "Сохраните данные, чтобы перенести их на другое устройство.",
+    copy_data: "Скопировать данные",
+    paste_data: "Восстановить из кода",
+    data_copied: "Данные скопированы!",
+    data_imported: "Данные успешно восстановлены!",
+    install_title: "Установка на телефон",
+    install_ios: "iOS (iPhone): Нажмите 'Поделиться' в Safari → 'На экран Домой'",
+    install_android: "Android: Нажмите меню (3 точки) в Chrome → 'Установить приложение'",
+    restore_placeholder: "Вставьте код данных сюда...",
+    restore_btn: "Восстановить",
     delete_goal: "Удалить цель",
     confirm_delete: "Удалить эту цель и весь прогресс?",
-    confirm_logout: "Выйти из аккаунта?",
+    confirm_logout: "Вы уверены, что хотите выйти? Данные останутся на этом устройстве.",
     alert_fill: "Заполните название и хотя бы одну подзадачу (привычку)",
     notify_created: "Цель успешно создана! 🚀",
     notify_great: "Отличная работа! Так держать! 🎉",
     goal_type_week: "Недельная цель",
     goal_type_long: "Долгосрочная цель",
     no_desc: "Без описания",
-    table_task: "Задача",
-    loading_cloud: "Связь с сервером...",
-    firebase_error: "Ошибка подключения к базе данных."
+    table_task: "Задача"
   },
   ky: {
     login_title: "AchieveTracker",
-    login_subtitle: "Максаттарыңызды системалаштырыңыз.",
+    login_subtitle: "Максаттарыңызды системалаштырыңыз, адаттарды көзөмөлдөңүз жана ийгилигиңизди көрүңүз.",
     login_placeholder: "Атыңыз ким?",
     login_btn: "Баштоо",
     login_select_lang: "Тилди тандаңыз",
     greeting: "Салам",
-    greeting_sub: "Чоң ийгиликтерге жетели!",
+    greeting_sub: "Келиңиз, чоң ийгиликтерге жетели!",
     streak_label: "СЕРИЯ",
     streak_unit: "күн катары менен",
     today_widget: "БҮГҮН",
     tasks_done: "тапшырма аткарылды",
     today_header: "Бүгүнкү тапшырмалар",
     my_goals: "Менин максаттарым",
-    empty_goals: "Максаттар жок",
+    empty_goals: "Сизде азырынча максаттар жок",
     create_first_goal: "Биринчи максатты түзүү",
     deadline: "Мөөнөтү",
     deadline_year: "Жылдын аягы",
     deadline_month: "Айдын аягы",
     deadline_week: "Жуманын аягы",
-    activity_week: "Активдүүлүк",
+    activity_week: "Активдүүлүк (жума)",
     open_tracker: "Трекерди ачуу",
     new_goal: "Жаңы максат",
     goal_title: "Максаттын аталышы",
-    goal_title_ph: "Мисалы: Англис тили",
+    goal_title_ph: "Мисалы: Англис тилин үйрөнүү",
     deadline_label: "Аткаруу мөөнөтү",
     type_week: "Жума",
     type_month: "Ай",
     type_year: "Жыл",
     type_date: "Дата",
-    desc_label: "Сүрөттөмө",
-    desc_ph: "Маанилүүлүгү?",
-    habits_label: "Адаттар / кадамдар",
+    desc_label: "Сүрөттөмө (милдеттүү эмес)",
+    desc_ph: "Бул сиз үчүн эмне үчүн маанилүү?",
+    habits_label: "Негизги адаттар / кадамдар",
     habits_sub: "Туруктуу эмне кылуу керек?",
     add_habit: "+ Кошуу",
     habit_ph: "Мисалы: 15 мүнөт окуу",
     cancel: "Жокко чыгаруу",
     days_short: ['Жк','Дш','Шш','Шр','Бш','Жм','Иш'],
     settings_title: "Жөндөөлөр",
-    backup_title: "Синхронизация",
-    backup_desc: "Маалымат булутта сакталат.",
-    install_title: "Орнотуу",
-    install_desc: "APK версиясы.",
-    delete_goal: "Өчүрүү",
-    confirm_delete: "Өчүрөсүзбү?",
-    confirm_logout: "Чыгууну каалайсызбы?",
-    alert_fill: "Толтуруңуз",
-    notify_created: "Максат түзүлдү! 🚀",
-    notify_great: "Азаматсыз! 🎉",
-    goal_type_week: "Жумалык",
-    goal_type_long: "Узак мөөнөттүү",
+    backup_title: "Маалыматты сактоо",
+    backup_desc: "Башка түзмөккө өткөрүү үчүн маалыматты сактаңыз.",
+    copy_data: "Көчүрүү",
+    paste_data: "Калыбына келтирүү",
+    data_copied: "Маалымат көчүрүлдү!",
+    data_imported: "Маалымат ийгиликтүү жаңыртылды!",
+    install_title: "Телефонго орнотуу",
+    install_ios: "iOS: Safari'де 'Бөлүшүү' → 'Башкы экранга кошуу'",
+    install_android: "Android: Chrome менюсу → 'Тиркемени орнотуу'",
+    restore_placeholder: "Кодду бул жерге коюңуз...",
+    restore_btn: "Калыбына келтирүү",
+    delete_goal: "Максатты өчүрүү",
+    confirm_delete: "Бул максатты жана бардык прогрессти өчүрөсүзбү?",
+    confirm_logout: "Чыгууну каалайсызбы? Маалымат бул түзмөктө сакталат.",
+    alert_fill: "Аталышын жана жок дегенде бир тапшырманы толтуруңуз",
+    notify_created: "Максат ийгиликтүү түзүлдү! 🚀",
+    notify_great: "Азаматсыз! Ушунуңузду жазбаңыз! 🎉",
+    goal_type_week: "Жумалык максат",
+    goal_type_long: "Узак мөөнөттүү максат",
     no_desc: "Сүрөттөмөсү жок",
-    table_task: "Тапшырма",
-    loading_cloud: "Жүктөлүүдө...",
-    firebase_error: "Firebase катасы."
+    table_task: "Тапшырма"
   },
   en: {
     login_title: "AchieveTracker",
-    login_subtitle: "Systematize goals, track habits.",
-    login_placeholder: "Your name?",
-    login_btn: "Start",
+    login_subtitle: "Systematize goals, track habits, and visualize your success.",
+    login_placeholder: "What is your name?",
+    login_btn: "Start Journey",
     login_select_lang: "Select Language",
     greeting: "Hello",
     greeting_sub: "Let's achieve more!",
     streak_label: "STREAK",
-    streak_unit: "days row",
+    streak_unit: "days in a row",
     today_widget: "TODAY",
     tasks_done: "tasks done",
     today_header: "Tasks for today",
     my_goals: "My Goals",
-    empty_goals: "No goals yet",
+    empty_goals: "You have no goals yet",
     create_first_goal: "Create first goal",
     deadline: "Deadline",
     deadline_year: "End of year",
     deadline_month: "End of month",
     deadline_week: "End of week",
-    activity_week: "Activity",
+    activity_week: "Activity (week)",
     open_tracker: "Open tracker",
     new_goal: "New Goal",
     goal_title: "Goal Title",
@@ -173,37 +159,47 @@ const TRANSLATIONS = {
     type_month: "Month",
     type_year: "Year",
     type_date: "Date",
-    desc_label: "Description",
-    desc_ph: "Why important?",
-    habits_label: "Habits / steps",
-    habits_sub: "Regular actions?",
+    desc_label: "Description (optional)",
+    desc_ph: "Why is this important to you?",
+    habits_label: "Key habits / steps",
+    habits_sub: "What to do regularly?",
     add_habit: "+ Add",
     habit_ph: "E.g.: Read 15 min",
     cancel: "Cancel",
     days_short: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
     settings_title: "Settings",
-    backup_title: "Sync",
-    backup_desc: "Data synced to cloud.",
-    install_title: "Install",
-    install_desc: "APK version.",
-    delete_goal: "Delete",
-    confirm_delete: "Delete goal?",
-    confirm_logout: "Log out?",
-    alert_fill: "Fill title & tasks",
-    notify_created: "Goal created! 🚀",
-    notify_great: "Great job! 🎉",
-    goal_type_week: "Weekly",
-    goal_type_long: "Long-term",
-    no_desc: "No desc",
-    table_task: "Task",
-    loading_cloud: "Loading cloud data...",
-    firebase_error: "Firebase connection error."
+    backup_title: "Backup & Restore",
+    backup_desc: "Save your data to transfer to another device.",
+    copy_data: "Copy Data",
+    paste_data: "Restore from Code",
+    data_copied: "Data copied!",
+    data_imported: "Data restored successfully!",
+    install_title: "Install on Phone",
+    install_ios: "iOS: Tap 'Share' in Safari → 'Add to Home Screen'",
+    install_android: "Android: Tap menu in Chrome → 'Install App'",
+    restore_placeholder: "Paste data code here...",
+    restore_btn: "Restore",
+    delete_goal: "Delete Goal",
+    confirm_delete: "Delete this goal and all progress?",
+    confirm_logout: "Are you sure you want to log out? Data will remain on this device.",
+    alert_fill: "Fill in the title and at least one subtask",
+    notify_created: "Goal successfully created! 🚀",
+    notify_great: "Great job! Keep it up! 🎉",
+    goal_type_week: "Weekly goal",
+    goal_type_long: "Long-term goal",
+    no_desc: "No description",
+    table_task: "Task"
   }
 };
 
-const LOCALES = { ru: 'ru-RU', ky: 'ky-KG', en: 'en-US' };
+const LOCALES = {
+  ru: 'ru-RU',
+  ky: 'ky-KG', 
+  en: 'en-US'
+};
 
-// --- Компоненты UI ---
+// --- Компоненты UI (мини-библиотека) ---
+
 const Card = ({ children, className = "" }) => (
   <div className={`bg-white rounded-2xl shadow-sm border border-slate-100 p-5 ${className}`}>
     {children}
@@ -221,7 +217,9 @@ const Button = ({ children, onClick, variant = "primary", className = "", type =
   };
   return (
     <button 
-      type={type} onClick={onClick} disabled={disabled}
+      type={type} 
+      onClick={onClick} 
+      disabled={disabled}
       className={`${baseStyle} ${variants[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {children}
@@ -233,315 +231,500 @@ const Input = ({ label, value, onChange, placeholder, type = "text", required = 
   <div className="mb-4">
     {label && <label className="block text-sm font-medium text-slate-600 mb-1.5">{label}</label>}
     <input
-      type={type} value={value} onChange={onChange} placeholder={placeholder} required={required}
-      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none transition-all text-slate-800 placeholder-slate-400"
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-slate-800 placeholder-slate-400"
     />
   </div>
 );
 
-const ProgressBar = ({ percentage }) => (
+const ProgressBar = ({ percentage, colorClass = "bg-indigo-500" }) => (
   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mt-2">
-    <div className={`h-full bg-indigo-500 transition-all duration-500 ease-out`} style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} />
+    <div 
+      className={`h-full ${colorClass} transition-all duration-500 ease-out`} 
+      style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+    />
   </div>
 );
 
 // --- Утилиты ---
-const getTodayString = () => new Date().toISOString().split('T')[0];
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const getTodayString = () => {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+};
+
 const formatDate = (dateString, locale) => {
   const options = { day: 'numeric', month: 'long' };
   return new Date(dateString).toLocaleDateString(locale, options);
 };
 
 // --- Основное Приложение ---
+
 export default function AchieveTracker() {
-  const [user, setUser] = useState(null); // Firebase User Object
-  const [userName, setUserName] = useState(''); // Display Name
-  const [lang, setLang] = useState('ru');
-  const [view, setView] = useState('loading'); 
+  // --- Состояние ---
+  const [user, setUser] = useState(null);
+  const [lang, setLang] = useState('ru'); // ru, ky, en
+  const [view, setView] = useState('loading'); // loading, login, dashboard, createGoal, goalDetail, settings
   const [goals, setGoals] = useState([]);
   const [activeGoalId, setActiveGoalId] = useState(null);
   const [notification, setNotification] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Инициализация и Auth Listener
+  // --- Загрузка/Сохранение данных ---
   useEffect(() => {
+    const savedUser = localStorage.getItem('achieve_user');
+    const savedGoals = JSON.parse(localStorage.getItem('achieve_goals') || '[]');
     const savedLang = localStorage.getItem('achieve_lang');
+    
     if (savedLang) setLang(savedLang);
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        // Пытаемся восстановить имя из localStorage, или используем ID
-        const storedName = localStorage.getItem('achieve_username');
-        if (storedName) {
-            setUserName(storedName);
-            setView('dashboard');
-        } else {
-            // Если пользователь есть в Firebase, но локально имя стерлось, просим ввести
-            setView('login');
-        }
-      } else {
-        setUser(null);
-        setView('login');
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
+    if (savedUser) {
+      setUser(savedUser);
+      setGoals(savedGoals);
+      setView('dashboard');
+    } else {
+      setView('login');
+    }
   }, []);
 
-  // 2. Слушатель Базы Данных (Firestore Real-time)
   useEffect(() => {
-    if (!user) return;
-
-    // Запрос: Найти цели, где userId == текущему пользователю
-    const q = query(
-      collection(db, "goals"), 
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const goalsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setGoals(goalsData);
-    }, (error) => {
-      console.error("Error fetching goals:", error);
-      // В демо режиме (без индексов) orderBy может требовать настройки.
-      // Если упадет, можно убрать orderBy
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Сохранение языка
-  useEffect(() => {
+    if (user) localStorage.setItem('achieve_user', user);
+    localStorage.setItem('achieve_goals', JSON.stringify(goals));
     localStorage.setItem('achieve_lang', lang);
-  }, [lang]);
+  }, [user, goals, lang]);
 
-  // --- Actions ---
+  // --- Логика ---
 
+  // Хелпер для перевода
   const t = (key) => TRANSLATIONS[lang]?.[key] || key;
   const currentLocale = LOCALES[lang];
 
-  const handleLogin = async (name) => {
-    try {
-      await signInAnonymously(auth);
-      setUserName(name);
-      localStorage.setItem('achieve_username', name);
-    } catch (error) {
-      console.error(error);
-      window.alert(t('firebase_error') + " " + error.message);
-    }
+  const handleLogin = (name) => {
+    setUser(name);
+    setView('dashboard');
   };
 
-  const handleLogout = async () => {
-    if(window.confirm(t('confirm_logout'))) {
-      await signOut(auth);
-      localStorage.removeItem('achieve_username');
-      setUserName('');
+  const handleLogout = () => {
+    if(confirm(t('confirm_logout'))) {
+      setUser(null);
       setView('login');
+      localStorage.removeItem('achieve_user');
     }
   };
 
-  const addGoal = async (newGoal) => {
-    if (!user) return;
+  const handleImportData = (jsonString) => {
     try {
-      await addDoc(collection(db, "goals"), {
-        ...newGoal,
-        userId: user.uid,
-        createdAt: serverTimestamp(), 
-        progress: 0
-      });
-      setView('dashboard');
-      showNotification(t('notify_created'));
-    } catch (e) {
-      console.error("Error adding doc: ", e);
-      showNotification("Ошибка сохранения в облако");
-    }
-  };
-
-  const deleteGoal = async (id) => {
-    if (!user) return;
-    if (window.confirm(t('confirm_delete'))) {
-      try {
-        await deleteDoc(doc(db, "goals", id));
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        setGoals(parsed);
+        showNotification(t('data_imported'));
         setView('dashboard');
-      } catch(e) { console.error(e); }
+      } else {
+        alert("Invalid data format");
+      }
+    } catch (e) {
+      alert("Error parsing data");
     }
   };
 
-  const toggleTask = async (goalId, taskId, dateString) => {
-    if (!user) return;
-    
-    const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
+  const addGoal = (newGoal) => {
+    setGoals([...goals, { ...newGoal, id: generateId(), createdAt: new Date().toISOString(), progress: 0 }]);
+    setView('dashboard');
+    showNotification(t('notify_created'));
+  };
 
-    const updatedTasks = goal.tasks.map(task => {
-      if (task.id !== taskId) return task;
-      
-      const logs = { ...task.logs };
-      if (logs[dateString]) {
-        delete logs[dateString];
-      } else {
-        logs[dateString] = true;
-        if (dateString === getTodayString()) triggerConfetti(); 
-      }
-      return { ...task, logs };
-    });
+  const deleteGoal = (id) => {
+    if (confirm(t('confirm_delete'))) {
+      setGoals(goals.filter(g => g.id !== id));
+      setView('dashboard');
+    }
+  };
 
-    try {
-        await updateDoc(doc(db, "goals", goalId), { tasks: updatedTasks });
-    } catch(e) { console.error(e); }
+  const toggleTask = (goalId, taskId, dateString) => {
+    setGoals(goals.map(goal => {
+      if (goal.id !== goalId) return goal;
+
+      const updatedTasks = goal.tasks.map(task => {
+        if (task.id !== taskId) return task;
+        
+        const logs = { ...task.logs };
+        if (logs[dateString]) {
+          delete logs[dateString];
+        } else {
+          logs[dateString] = true;
+          if (dateString === getTodayString()) {
+            triggerConfetti(); 
+          }
+        }
+        return { ...task, logs };
+      });
+      return { ...goal, tasks: updatedTasks };
+    }));
   };
 
   const showNotification = (msg) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
   };
-  const triggerConfetti = () => showNotification(t('notify_great'));
+
+  const triggerConfetti = () => {
+    showNotification(t('notify_great'));
+  };
+
+  // --- Вычисляемые данные ---
   
   const getStreak = () => {
     let streak = 0;
     const today = new Date();
+    
     for (let i = 0; i < 365; i++) {
-      const d = new Date(today); d.setDate(d.getDate() - i);
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       const hasActivity = goals.some(g => g.tasks.some(t => t.logs && t.logs[dateStr]));
-      if (hasActivity) streak++;
-      else if (i === 0 && !hasActivity) continue; 
-      else break;
+      
+      if (hasActivity) {
+        streak++;
+      } else if (i === 0 && !hasActivity) {
+        continue; 
+      } else {
+        break;
+      }
     }
     return streak;
   };
 
   const activeGoal = goals.find(g => g.id === activeGoalId);
 
-  // --- RENDER ---
+  // --- Компоненты Страниц ---
 
-  if (isLoading || view === 'loading') return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-indigo-600 gap-2">
-      <Loader2 className="w-10 h-10 animate-spin" />
-      <span>{t('loading_cloud')}</span>
-    </div>
-  );
+  if (view === 'loading') return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-indigo-600">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-10 select-none">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-10">
       <div className="max-w-md mx-auto min-h-screen bg-white sm:shadow-xl sm:my-5 sm:rounded-3xl overflow-hidden relative">
         
-        {/* Header */}
+        {/* Хедер */}
         {view !== 'login' && (
           <header className="px-6 py-5 bg-white border-b border-slate-100 flex justify-between items-center sticky top-0 z-10">
             {view === 'dashboard' ? (
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg">
-                  {userName[0]?.toUpperCase()}
+                  {user[0].toUpperCase()}
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg leading-tight">{t('greeting')}, {userName}</h1>
+                  <h1 className="font-bold text-lg leading-tight">{t('greeting')}, {user}</h1>
                   <p className="text-xs text-slate-500">{t('greeting_sub')}</p>
                 </div>
               </div>
             ) : (
-              <button onClick={() => setView('dashboard')} className="p-2 -ml-2 hover:bg-slate-100 rounded-full"><ChevronLeft className="w-6 h-6 text-slate-600" /></button>
+              <button onClick={() => setView('dashboard')} className="p-2 -ml-2 hover:bg-slate-100 rounded-full transition-colors">
+                <ChevronLeft className="w-6 h-6 text-slate-600" />
+              </button>
             )}
-            {view === 'dashboard' && <button onClick={() => setView('settings')} className="p-2 hover:bg-slate-100 rounded-full"><Settings className="w-5 h-5 text-slate-400" /></button>}
+            
+            <div className="flex items-center gap-1">
+              {view === 'dashboard' && (
+                 <button onClick={() => setView('settings')} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                   <Settings className="w-5 h-5" />
+                 </button>
+              )}
+            </div>
+
+            {/* Заголовки для других экранов */}
+            {view === 'goalDetail' && (
+               <h2 className="font-bold text-lg truncate max-w-[200px] absolute left-1/2 -translate-x-1/2">{activeGoal?.title}</h2>
+            )}
+            {view === 'createGoal' && (
+               <h2 className="font-bold text-lg absolute left-1/2 -translate-x-1/2">{t('new_goal')}</h2>
+            )}
+            {view === 'settings' && (
+               <h2 className="font-bold text-lg absolute left-1/2 -translate-x-1/2">{t('settings_title')}</h2>
+            )}
           </header>
         )}
 
-        {/* Notifications */}
+        {/* Уведомление */}
         {notification && (
-          <div className="absolute top-20 left-4 right-4 bg-indigo-600 text-white py-3 px-4 rounded-xl shadow-lg z-50 animate-bounce-in flex justify-center">
-            {notification}
+          <div className="absolute top-20 left-4 right-4 bg-indigo-600 text-white py-3 px-4 rounded-xl shadow-lg z-50 animate-bounce-in flex items-center justify-center gap-2">
+            <span>{notification}</span>
           </div>
         )}
 
-        {/* Main Content */}
+        {/* Контент */}
         <main className="p-4">
-          {view === 'login' && <LoginScreen onLogin={handleLogin} t={t} lang={lang} setLang={setLang} />}
+          
+          {view === 'login' && (
+            <LoginScreen 
+              onLogin={handleLogin} 
+              t={t} 
+              lang={lang} 
+              setLang={setLang} 
+            />
+          )}
           
           {view === 'dashboard' && (
             <Dashboard 
-              user={userName} goals={goals} 
+              user={user} 
+              goals={goals} 
               onAdd={() => setView('createGoal')}
               onOpenGoal={(id) => { setActiveGoalId(id); setView('goalDetail'); }}
-              streak={getStreak()} onToggleTask={toggleTask} t={t} locale={currentLocale}
+              streak={getStreak()}
+              onToggleTask={toggleTask}
+              t={t}
+              locale={currentLocale}
             />
           )}
 
-          {view === 'createGoal' && <CreateGoalScreen onSave={addGoal} onCancel={() => setView('dashboard')} t={t} />}
-          
-          {view === 'goalDetail' && activeGoal && (
-            <GoalDetailScreen goal={activeGoal} onToggleTask={toggleTask} onDelete={() => deleteGoal(activeGoal.id)} t={t} locale={currentLocale} />
+          {view === 'settings' && (
+            <SettingsScreen 
+              t={t} 
+              goals={goals} 
+              onImport={handleImportData}
+              onLogout={handleLogout}
+              lang={lang}
+              setLang={setLang}
+            />
           )}
 
-          {view === 'settings' && (
-            <SettingsScreen t={t} onLogout={handleLogout} lang={lang} setLang={setLang} />
+          {view === 'createGoal' && (
+            <CreateGoalScreen 
+              onSave={addGoal} 
+              onCancel={() => setView('dashboard')} 
+              t={t}
+            />
           )}
+
+          {view === 'goalDetail' && activeGoal && (
+            <GoalDetailScreen 
+              goal={activeGoal} 
+              onToggleTask={toggleTask}
+              onDelete={() => deleteGoal(activeGoal.id)}
+              t={t}
+              locale={currentLocale}
+            />
+          )}
+
         </main>
       </div>
     </div>
   );
 }
 
-// --- SUB-SCREENS ---
+// --- Экраны ---
 
 const LoginScreen = ({ onLogin, t, lang, setLang }) => {
   const [name, setName] = useState('');
-  const languages = [{ code: 'ru', icon: '🇷🇺' }, { code: 'ky', icon: '🇰🇬' }, { code: 'en', icon: '🇺🇸' }];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (name.trim()) onLogin(name.trim());
+  };
+
+  const languages = [
+    { code: 'ru', label: 'Русский', icon: '🇷🇺' },
+    { code: 'ky', label: 'Кыргызча', icon: '🇰🇬' },
+    { code: 'en', label: 'English', icon: '🇺🇸' },
+  ];
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center animate-fade-in">
-      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-xl rotate-3"><Target className="w-10 h-10 text-white" /></div>
+      <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-indigo-200 shadow-xl rotate-3">
+        <Target className="w-10 h-10 text-white" />
+      </div>
       <h1 className="text-3xl font-bold text-slate-800 mb-2">{t('login_title')}</h1>
       <p className="text-slate-500 mb-8 max-w-xs">{t('login_subtitle')}</p>
+      
+      {/* Выбор языка */}
       <div className="flex bg-slate-100 p-1 rounded-xl mb-8 w-full max-w-xs">
         {languages.map((l) => (
-          <button key={l.code} onClick={() => setLang(l.code)} className={`flex-1 py-2 text-sm rounded-lg ${lang === l.code ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>{l.icon}</button>
+          <button
+            key={l.code}
+            onClick={() => setLang(l.code)}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+              lang === l.code ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <span className="mr-1">{l.icon}</span> {l.code.toUpperCase()}
+          </button>
         ))}
       </div>
-      <form onSubmit={(e)=>{e.preventDefault(); if(name.trim()) onLogin(name.trim());}} className="w-full max-w-xs space-y-4">
-        <Input placeholder={t('login_placeholder')} value={name} onChange={(e) => setName(e.target.value)} required />
+      
+      <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">
+        <Input 
+          placeholder={t('login_placeholder')} 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          required
+        />
         <Button type="submit" disabled={!name.trim()}>{t('login_btn')}</Button>
       </form>
     </div>
   );
 };
 
+// --- Новый Экран Настроек ---
+
+const SettingsScreen = ({ t, goals, onImport, onLogout, lang, setLang }) => {
+  const [importText, setImportText] = useState('');
+  const [showImport, setShowImport] = useState(false);
+
+  const copyToClipboard = () => {
+    const data = JSON.stringify(goals);
+    navigator.clipboard.writeText(data).then(() => {
+      alert(t('data_copied'));
+    });
+  };
+
+  const languages = [
+    { code: 'ru', label: 'Русский', icon: '🇷🇺' },
+    { code: 'ky', label: 'Кыргызча', icon: '🇰🇬' },
+    { code: 'en', label: 'English', icon: '🇺🇸' },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in pb-10">
+      
+      {/* Язык */}
+      <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+        <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <Globe className="w-5 h-5 text-indigo-500" /> {t('login_select_lang')}
+        </h3>
+        <div className="flex bg-slate-50 p-1 rounded-xl">
+          {languages.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code)}
+              className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                lang === l.code ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <span className="mr-1">{l.icon}</span> {l.code.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Установка */}
+      <section className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4">
+        <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
+          <Smartphone className="w-5 h-5" /> {t('install_title')}
+        </h3>
+        <ul className="text-sm text-indigo-700 space-y-2">
+          <li className="flex gap-2">
+             <span className="font-bold">•</span> {t('install_ios')}
+          </li>
+          <li className="flex gap-2">
+             <span className="font-bold">•</span> {t('install_android')}
+          </li>
+        </ul>
+      </section>
+
+      {/* Бэкап */}
+      <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+        <h3 className="font-bold text-slate-700 mb-1 flex items-center gap-2">
+          <Download className="w-5 h-5 text-indigo-500" /> {t('backup_title')}
+        </h3>
+        <p className="text-xs text-slate-500 mb-4">{t('backup_desc')}</p>
+        
+        <Button onClick={copyToClipboard} variant="outline" className="mb-3">
+           {t('copy_data')}
+        </Button>
+        
+        {!showImport ? (
+          <Button onClick={() => setShowImport(true)} variant="ghost" className="text-sm">
+            {t('paste_data')}
+          </Button>
+        ) : (
+          <div className="mt-2 animate-fade-in">
+             <textarea 
+               value={importText}
+               onChange={e => setImportText(e.target.value)}
+               className="w-full border p-2 rounded-xl text-xs font-mono h-24 mb-2"
+               placeholder={t('restore_placeholder')}
+             />
+             <div className="flex gap-2">
+               <Button onClick={() => setShowImport(false)} variant="ghost" className="flex-1">{t('cancel')}</Button>
+               <Button onClick={() => onImport(importText)} className="flex-1">{t('restore_btn')}</Button>
+             </div>
+          </div>
+        )}
+      </section>
+
+      {/* Выход */}
+      <section>
+        <Button onClick={onLogout} variant="danger" className="bg-red-50 text-red-500">
+           <LogOut className="w-5 h-5" /> Выйти из аккаунта
+        </Button>
+      </section>
+    </div>
+  );
+};
+
 const Dashboard = ({ goals, onAdd, onOpenGoal, streak, onToggleTask, t, locale }) => {
   const today = getTodayString();
+  
   const todaysTasks = useMemo(() => {
     let tasks = [];
-    goals.forEach(goal => goal.tasks.forEach(task => tasks.push({ ...task, goalId: goal.id, goalTitle: goal.title })));
+    goals.forEach(goal => {
+      goal.tasks.forEach(task => {
+        tasks.push({ ...task, goalId: goal.id, goalColor: goal.color, goalTitle: goal.title });
+      });
+    });
     return tasks;
   }, [goals]);
+
   const completedToday = todaysTasks.filter(t => t.logs && t.logs[today]).length;
+  const totalTasks = todaysTasks.length;
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
+      
+      {/* Статистика */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none">
-          <div className="flex items-center gap-1 mb-1 opacity-90"><Flame className="w-4 h-4" /> <span className="text-xs font-semibold">{t('streak_label')}</span></div>
+          <div className="flex items-center gap-1 mb-1 opacity-90">
+            <Flame className="w-4 h-4" /> <span className="text-xs font-semibold uppercase">{t('streak_label')}</span>
+          </div>
           <span className="text-3xl font-bold">{streak}</span>
+          <span className="text-xs opacity-75">{t('streak_unit')}</span>
         </Card>
         <Card className="p-4 flex flex-col items-center justify-center">
-           <div className="flex items-center gap-1 mb-1 text-slate-400"><Activity className="w-4 h-4" /> <span className="text-xs font-semibold">{t('today_widget')}</span></div>
-          <span className="text-3xl font-bold text-slate-700">{completedToday}<span className="text-lg text-slate-400">/{todaysTasks.length}</span></span>
+           <div className="flex items-center gap-1 mb-1 text-slate-400">
+            <Activity className="w-4 h-4" /> <span className="text-xs font-semibold uppercase">{t('today_widget')}</span>
+          </div>
+          <span className="text-3xl font-bold text-slate-700">{completedToday}<span className="text-lg text-slate-400">/{totalTasks}</span></span>
+          <span className="text-xs text-slate-400">{t('tasks_done')}</span>
         </Card>
       </div>
-      
-      {todaysTasks.length > 0 && (
+
+      {/* Виджет "Сегодня" */}
+      {totalTasks > 0 && (
         <section>
-          <div className="flex justify-between mb-3 px-1"><h3 className="font-bold text-slate-700">{t('today_header')}</h3><span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">{formatDate(today, locale)}</span></div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="font-bold text-slate-700 text-lg">{t('today_header')}</h3>
+            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">{formatDate(today, locale)}</span>
+          </div>
           <div className="space-y-2">
             {todaysTasks.map(task => {
               const isDone = !!(task.logs && task.logs[today]);
               return (
-                <div key={`${task.goalId}-${task.id}`} onClick={() => onToggleTask(task.goalId, task.id, today)}
-                     className={`p-3 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${isDone ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100'}`}>
-                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 ${isDone ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>{isDone && <Check className="w-4 h-4 text-white" />}</div>
-                  <div className="flex-1"><p className={`text-sm font-medium ${isDone ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{task.title}</p><p className="text-[10px] text-slate-400 uppercase">{task.goalTitle}</p></div>
+                <div key={`${task.goalId}-${task.id}`} 
+                     onClick={() => onToggleTask(task.goalId, task.id, today)}
+                     className={`p-3 rounded-xl border flex items-center gap-3 transition-all cursor-pointer active:scale-[0.98] ${isDone ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100'}`}
+                >
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-colors ${isDone ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`}>
+                    {isDone && <Check className="w-4 h-4 text-white" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${isDone ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{task.title}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{task.goalTitle}</p>
+                  </div>
                 </div>
               );
             })}
@@ -549,76 +732,201 @@ const Dashboard = ({ goals, onAdd, onOpenGoal, streak, onToggleTask, t, locale }
         </section>
       )}
 
+      {/* Список Целей */}
       <section>
-        <h3 className="font-bold text-slate-700 mb-3 px-1">{t('my_goals')}</h3>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h3 className="font-bold text-slate-700 text-lg">{t('my_goals')}</h3>
+        </div>
+        
         {goals.length === 0 ? (
-          <div className="text-center py-10 bg-white rounded-2xl border-dashed border border-slate-300"><Plus className="w-8 h-8 text-slate-300 mx-auto mb-2" /><p className="text-slate-400 mb-4">{t('empty_goals')}</p><Button variant="ghost" onClick={onAdd} className="text-indigo-600">{t('create_first_goal')}</Button></div>
+          <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-300">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Plus className="w-6 h-6 text-slate-400" />
+            </div>
+            <p className="text-slate-500 mb-4">{t('empty_goals')}</p>
+            <Button variant="ghost" onClick={onAdd} className="text-indigo-600">{t('create_first_goal')}</Button>
+          </div>
         ) : (
           <div className="space-y-4">
             {goals.map(goal => {
-               let checked = 0; let total = 0;
-               goal.tasks.forEach(t => { total += 7; for(let i=0;i<7;i++){ 
-                   const d = new Date(); d.setDate(d.getDate()-i); 
-                   if(t.logs && t.logs[d.toISOString().split('T')[0]]) checked++; 
-               }});
-               const p = total===0?0:Math.round((checked/total)*100);
+               let filledCount = 0;
+               let totalChecks = 0;
+               const lookback = 7;
+               
+               goal.tasks.forEach(t => {
+                 for(let i=0; i<lookback; i++) {
+                   const d = new Date(); d.setDate(d.getDate() - i);
+                   const s = d.toISOString().split('T')[0];
+                   totalChecks++;
+                   if(t.logs && t.logs[s]) filledCount++;
+                 }
+               });
+               
+               const percent = totalChecks === 0 ? 0 : Math.round((filledCount / totalChecks) * 100);
+
+               const deadlineText = 
+                goal.deadlineType === 'date' ? formatDate(goal.deadlineValue, locale) : 
+                goal.deadlineType === 'year' ? t('deadline_year') : 
+                goal.deadlineType === 'month' ? t('deadline_month') : t('deadline_week');
+
                return (
-                <Card key={goal.id} className="relative overflow-hidden">
-                  <div className="flex justify-between mb-2"><div><h4 className="font-bold text-lg">{goal.title}</h4><p className="text-xs text-slate-500 flex gap-1 mt-1"><Calendar className="w-3 h-3" /> {t('deadline')}</p></div><div className={`w-10 h-10 rounded-full flex items-center justify-center bg-indigo-100`}><Trophy className={`w-5 h-5 text-indigo-500`} /></div></div>
-                  <div className="mb-4"><div className="flex justify-between text-xs text-slate-500 mb-1"><span>{t('activity_week')}</span><span>{p}%</span></div><ProgressBar percentage={p} /></div>
-                  <Button variant="secondary" onClick={() => onOpenGoal(goal.id)} className="text-sm py-2">{t('open_tracker')}</Button>
+                <Card key={goal.id} className="relative overflow-hidden group">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-bold text-lg text-slate-800">{goal.title}</h4>
+                      <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                        <Calendar className="w-3 h-3" /> {t('deadline')}: {deadlineText}
+                      </p>
+                    </div>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-${goal.color}-100 text-${goal.color}-600`}>
+                       <Trophy className={`w-5 h-5 text-indigo-500`} />
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-slate-500 mb-1">
+                      <span>{t('activity_week')}</span>
+                      <span>{percent}%</span>
+                    </div>
+                    <ProgressBar percentage={percent} />
+                  </div>
+
+                  <Button variant="secondary" onClick={() => onOpenGoal(goal.id)} className="w-full text-sm py-2">
+                    {t('open_tracker')}
+                  </Button>
                 </Card>
               );
             })}
           </div>
         )}
       </section>
-      <button onClick={onAdd} className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-20"><Plus className="w-7 h-7" /></button>
-    </div>
-  );
-};
 
-const SettingsScreen = ({ t, onLogout, lang, setLang }) => {
-  const languages = [{ code: 'ru', icon: '🇷🇺' }, { code: 'ky', icon: '🇰🇬' }, { code: 'en', icon: '🇺🇸' }];
-  return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <section className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-        <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2"><Globe className="w-5 h-5 text-indigo-500" /> {t('login_select_lang')}</h3>
-        <div className="flex bg-slate-50 p-1 rounded-xl">
-          {languages.map((l) => (
-            <button key={l.code} onClick={() => setLang(l.code)} className={`flex-1 py-2 text-xs font-medium rounded-lg ${lang === l.code ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{l.icon} {l.code.toUpperCase()}</button>
-          ))}
-        </div>
-      </section>
-      <section className="bg-indigo-50 rounded-2xl border border-indigo-100 p-4">
-        <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><Download className="w-5 h-5" /> {t('backup_title')}</h3>
-        <p className="text-sm text-indigo-700">{t('backup_desc')}</p>
-      </section>
-      <Button onClick={onLogout} variant="danger"><LogOut className="w-5 h-5" /> {t('confirm_logout')}</Button>
+      {/* FAB */}
+      <button 
+        onClick={onAdd}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-300 flex items-center justify-center hover:scale-110 transition-transform z-20"
+      >
+        <Plus className="w-7 h-7" />
+      </button>
     </div>
   );
 };
 
 const CreateGoalScreen = ({ onSave, onCancel, t }) => {
   const [title, setTitle] = useState('');
-  const [tasks, setTasks] = useState([{ id: Date.now().toString(), title: '', logs: {} }]);
+  const [deadlineType, setDeadlineType] = useState('month');
+  const [deadlineValue, setDeadlineValue] = useState('');
+  const [description, setDescription] = useState('');
+  const [tasks, setTasks] = useState([{ id: generateId(), title: '', logs: {} }]);
+
+  const handleTaskChange = (id, val) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, title: val } : t));
+  };
+
+  const addTaskField = () => {
+    setTasks([...tasks, { id: generateId(), title: '', logs: {} }]);
+  };
+
+  const removeTaskField = (id) => {
+    if (tasks.length > 1) {
+      setTasks(tasks.filter(t => t.id !== id));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const valid = tasks.filter(t => t.title.trim());
-    if (!title.trim() || valid.length === 0) return window.alert(t('alert_fill'));
-    onSave({ title, deadlineType: 'month', tasks: valid });
+    const validTasks = tasks.filter(t => t.title.trim() !== '');
+    if (!title.trim() || validTasks.length === 0) {
+      alert(t('alert_fill'));
+      return;
+    }
+
+    onSave({
+      title,
+      deadlineType,
+      deadlineValue,
+      description,
+      tasks: validTasks,
+      color: 'indigo'
+    });
   };
+
   return (
     <div className="pb-10 animate-fade-in">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section><label className="block text-sm font-bold text-slate-700 mb-2">{t('goal_title')}</label><input className="w-full text-2xl font-bold border-b-2 border-slate-200 focus:border-indigo-500 outline-none py-2 bg-transparent" placeholder={t('goal_title_ph')} value={title} onChange={e => setTitle(e.target.value)} autoFocus /></section>
+        
         <section>
-          <div className="flex justify-between items-center mb-3"><label className="block text-sm font-bold text-slate-700">{t('habits_label')}</label><button type="button" onClick={() => setTasks([...tasks, { id: Date.now().toString(), title: '', logs: {} }])} className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-md">{t('add_habit')}</button></div>
-          <div className="space-y-3">{tasks.map((task, idx) => (
-              <div key={task.id} className="flex gap-2 items-center"><span className="text-slate-400 text-xs font-mono w-4">{idx + 1}.</span><input className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 outline-none text-sm" placeholder={t('habit_ph')} value={task.title} onChange={e => setTasks(tasks.map(t => t.id === task.id ? { ...t, title: e.target.value } : t))} />{tasks.length > 1 && <button type="button" onClick={() => setTasks(tasks.filter(t => t.id !== task.id))} className="text-slate-300"><Trash2 className="w-4 h-4" /></button>}</div>
-            ))}</div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">{t('goal_title')}</label>
+          <input 
+            className="w-full text-2xl font-bold border-b-2 border-slate-200 focus:border-indigo-500 outline-none py-2 bg-transparent placeholder-slate-300 text-slate-800"
+            placeholder={t('goal_title_ph')}
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            autoFocus
+          />
         </section>
-        <div className="pt-4 flex gap-3"><Button variant="secondary" onClick={onCancel}>{t('cancel')}</Button><Button type="submit">{t('create_first_goal')}</Button></div>
+
+        <section>
+          <label className="block text-sm font-bold text-slate-700 mb-3">{t('deadline_label')}</label>
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {['week', 'month', 'year', 'date'].map(type => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setDeadlineType(type)}
+                className={`text-xs py-2 rounded-lg font-medium transition-colors ${deadlineType === type ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600'}`}
+              >
+                {t(`type_${type}`)}
+              </button>
+            ))}
+          </div>
+          {deadlineType === 'date' && (
+            <Input type="date" value={deadlineValue} onChange={e => setDeadlineValue(e.target.value)} />
+          )}
+        </section>
+
+        <section>
+           <label className="block text-sm font-bold text-slate-700 mb-2">{t('desc_label')}</label>
+           <textarea 
+             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 outline-none resize-none text-slate-700 h-24"
+             placeholder={t('desc_ph')}
+             value={description}
+             onChange={e => setDescription(e.target.value)}
+           />
+        </section>
+
+        <section>
+          <div className="flex justify-between items-center mb-3">
+            <label className="block text-sm font-bold text-slate-700">{t('habits_label')}</label>
+            <button type="button" onClick={addTaskField} className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-md">{t('add_habit')}</button>
+          </div>
+          <p className="text-xs text-slate-400 mb-3">{t('habits_sub')}</p>
+          
+          <div className="space-y-3">
+            {tasks.map((task, idx) => (
+              <div key={task.id} className="flex gap-2 items-center">
+                 <span className="text-slate-400 text-xs font-mono w-4">{idx + 1}.</span>
+                 <input 
+                   className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 outline-none text-sm"
+                   placeholder={t('habit_ph')}
+                   value={task.title}
+                   onChange={e => handleTaskChange(task.id, e.target.value)}
+                 />
+                 {tasks.length > 1 && (
+                   <button type="button" onClick={() => removeTaskField(task.id)} className="text-slate-300 hover:text-red-500">
+                     <Trash2 className="w-4 h-4" />
+                   </button>
+                 )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="pt-4 flex gap-3">
+          <Button variant="secondary" onClick={onCancel}>{t('cancel')}</Button>
+          <Button type="submit">{t('create_goal_btn')}</Button>
+        </div>
+
       </form>
     </div>
   );
@@ -626,25 +934,111 @@ const CreateGoalScreen = ({ onSave, onCancel, t }) => {
 
 const GoalDetailScreen = ({ goal, onToggleTask, onDelete, t, locale }) => {
   const [viewOffset, setViewOffset] = useState(0); 
+  const daysToShow = 7; 
+  
   const days = useMemo(() => {
-    const arr = []; const today = new Date(); const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - (today.getDay() || 7) + 1 + (viewOffset * 7));
-    for (let i = 0; i < 7; i++) { const d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i); arr.push(d); }
+    const arr = [];
+    const today = new Date();
+    const dayOfWeek = today.getDay() || 7; 
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek + 1 + (viewOffset * 7));
+
+    for (let i = 0; i < daysToShow; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      arr.push(d);
+    }
     return arr;
-  }, [viewOffset]);
+  }, [viewOffset, daysToShow]);
+
+  const currentMonthName = days[0].toLocaleString(locale, { month: 'long', year: 'numeric' });
   const dayNames = t('days_short');
+
   return (
     <div className="pb-10 animate-fade-in">
-      <div className="mb-6"><h2 className="text-2xl font-bold">{goal.title}</h2><p className="text-slate-600 text-sm">{goal.description || t('no_desc')}</p></div>
-      <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-xl border border-slate-100 shadow-sm"><button onClick={() => setViewOffset(p => p - 1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button><span className="font-bold text-slate-700 capitalize">{days[0].toLocaleString(locale, { month: 'long' })}</span><button onClick={() => setViewOffset(p => p + 1)} className="p-2"><ChevronRight className="w-5 h-5" /></button></div>
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="grid grid-cols-[3fr_repeat(7,1fr)] bg-slate-50 border-b border-slate-100">
-           <div className="p-3 text-xs font-bold text-slate-400 flex items-end">{t('table_task')}</div>
-           {days.map((d, i) => { const isToday = d.toISOString().split('T')[0] === getTodayString(); return (<div key={i} className={`p-2 text-center flex flex-col items-center justify-center ${isToday ? 'bg-indigo-50' : ''}`}><span className={`text-[10px] font-bold ${isToday ? 'text-indigo-600' : 'text-slate-400'}`}>{dayNames[d.getDay()]}</span><span className={`text-xs font-bold mt-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-slate-700'}`}>{d.getDate()}</span></div>)})} 
+      
+      {/* Шапка цели */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">
+             {goal.deadlineType === 'week' ? t('goal_type_week') : t('goal_type_long')}
+          </span>
         </div>
-        <div className="divide-y divide-slate-100">{goal.tasks.map(task => (<div key={task.id} className="grid grid-cols-[3fr_repeat(7,1fr)]"><div className="p-3 flex items-center"><span className="text-xs sm:text-sm font-medium text-slate-700 leading-tight">{task.title}</span></div>{days.map((d, i) => { const dateStr = d.toISOString().split('T')[0]; const isDone = !!(task.logs && task.logs[dateStr]); const isFuture = d > new Date(); return (<div key={i} className={`border-l border-slate-50 flex items-center justify-center`}><button disabled={isFuture} onClick={() => onToggleTask(goal.id, task.id, dateStr)} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isFuture ? 'opacity-20' : 'active:scale-90'} ${isDone ? 'bg-green-500' : 'bg-slate-100'}`}>{isDone && <Check className="w-5 h-5 text-white" />}</button></div>); })}</div>))}</div>
+        <p className="text-slate-600 text-sm">{goal.description || t('no_desc')}</p>
       </div>
-      <div className="mt-8"><Button variant="danger" onClick={onDelete}><Trash2 className="w-4 h-4" /> {t('delete_goal')}</Button></div>
+
+      {/* Навигация по датам */}
+      <div className="flex items-center justify-between mb-4 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+        <button onClick={() => setViewOffset(p => p - 1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <span className="font-bold text-slate-700 capitalize">{currentMonthName}</span>
+        <button onClick={() => setViewOffset(p => p + 1)} className="p-2 hover:bg-slate-50 rounded-lg text-slate-500">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Трекер (Матрица) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        
+        {/* Шапка таблицы (Дни недели) */}
+        <div className="grid grid-cols-[3fr_repeat(7,1fr)] bg-slate-50 border-b border-slate-100">
+           <div className="p-3 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-end">{t('table_task')}</div>
+           {days.map((d, i) => {
+             const isToday = d.toISOString().split('T')[0] === getTodayString();
+             return (
+               <div key={i} className={`p-2 text-center flex flex-col items-center justify-center ${isToday ? 'bg-indigo-50' : ''}`}>
+                 <span className={`text-[10px] font-bold ${isToday ? 'text-indigo-600' : 'text-slate-400'}`}>
+                   {dayNames[d.getDay()]}
+                 </span>
+                 <span className={`text-xs font-bold mt-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-slate-700'}`}>
+                   {d.getDate()}
+                 </span>
+               </div>
+             )
+           })}
+        </div>
+
+        {/* Тело таблицы (Задачи) */}
+        <div className="divide-y divide-slate-100">
+          {goal.tasks.map(task => (
+            <div key={task.id} className="grid grid-cols-[3fr_repeat(7,1fr)]">
+              <div className="p-3 flex items-center">
+                <span className="text-xs sm:text-sm font-medium text-slate-700 leading-tight">{task.title}</span>
+              </div>
+              {days.map((d, i) => {
+                const dateStr = d.toISOString().split('T')[0];
+                const isDone = !!(task.logs && task.logs[dateStr]);
+                const isFuture = d > new Date();
+
+                return (
+                  <div key={i} className={`border-l border-slate-50 flex items-center justify-center relative`}>
+                     <button
+                       disabled={isFuture}
+                       onClick={() => onToggleTask(goal.id, task.id, dateStr)}
+                       className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300
+                         ${isFuture ? 'opacity-20 cursor-default' : 'hover:bg-slate-100 active:scale-90 cursor-pointer'}
+                         ${isDone ? 'bg-green-500 shadow-md shadow-green-200' : 'bg-slate-100'}
+                       `}
+                     >
+                       {isDone && <Check className="w-5 h-5 text-white animate-scale-in" />}
+                     </button>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <Button variant="danger" onClick={onDelete} className="bg-white border border-red-100 text-red-500 hover:bg-red-50">
+           <Trash2 className="w-4 h-4" /> {t('delete_goal')}
+        </Button>
+      </div>
+
     </div>
   );
 };
+
+// CSS стили для анимаций (аналогично предыдущей версии)
